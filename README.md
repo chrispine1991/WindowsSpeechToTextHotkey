@@ -1,6 +1,6 @@
-# 🖱️ MouseButton3-to-WinH 🔊
+# 🖱️ Shift + Mouse 3 Button-to-WinH 🔊
 
-Trigger **Windows 11 Voice Typing (Win + H)** with a single press of **Mouse Button 3 (middle click)** using this tiny, silent C++ app.  
+Trigger **Windows 11 Voice Typing (Win + H)** with a press of WIN + **Mouse Button 3 (middle click)** using this tiny, silent C++ app.  
 Perfect for accessibility, dictation, or productivity without needing to press key combos!
 
 ---
