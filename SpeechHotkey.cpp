@@ -1,43 +1,10 @@
 #include <windows.h>
 #include <thread>
 #include <chrono>
-#include <string>
-#include <fstream>
 
 HINSTANCE hInst;
 NOTIFYICONDATA nid = {};
 bool running = true;
-
-std::string modifier = "Shift";
-std::string button = "MMB";
-
-void LoadConfig() {
-    std::ifstream file("SpeechHotkey.ini");
-    if (!file.is_open()) return;
-
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.find("Modifier=") == 0) modifier = line.substr(9);
-        if (line.find("Button=") == 0) button = line.substr(7);
-    }
-}
-
-UINT GetButtonVK() {
-    if (button == "MMB") return VK_MBUTTON;
-    if (button == "RMB") return VK_RBUTTON;
-    if (button == "LMB") return VK_LBUTTON;
-    if (button == "F13") return VK_F13;
-    if (button == "F14") return VK_F14;
-    return VK_MBUTTON; // Default
-}
-
-bool IsModifierPressed() {
-    if (modifier == "None") return true;
-    if (modifier == "Shift") return (GetAsyncKeyState(VK_SHIFT) & 0x8000);
-    if (modifier == "Ctrl")  return (GetAsyncKeyState(VK_CONTROL) & 0x8000);
-    if (modifier == "Alt")   return (GetAsyncKeyState(VK_MENU) & 0x8000);
-    return true;
-}
 
 void PressKey(WORD vk, bool down) {
     INPUT input = {};
@@ -47,10 +14,8 @@ void PressKey(WORD vk, bool down) {
     SendInput(1, &input, sizeof(INPUT));
 }
 
-void SendWinHWithShiftFix() {
+void SendWinH() {
     bool shiftHeld = (GetAsyncKeyState(VK_SHIFT) & 0x8000);
-
-    // Release Shift if held
     if (shiftHeld) PressKey(VK_SHIFT, false);
 
     INPUT inputs[4] = {};
@@ -58,9 +23,9 @@ void SendWinHWithShiftFix() {
     inputs[1].type = INPUT_KEYBOARD; inputs[1].ki.wVk = 'H';
     inputs[2].type = INPUT_KEYBOARD; inputs[2].ki.wVk = 'H'; inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
     inputs[3].type = INPUT_KEYBOARD; inputs[3].ki.wVk = VK_LWIN; inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
+
     SendInput(4, inputs, sizeof(INPUT));
 
-    // Restore Shift if it was held
     if (shiftHeld) PressKey(VK_SHIFT, true);
 }
 
@@ -82,9 +47,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
-    LoadConfig();
-
-    // Register hidden window
     const char CLASS_NAME[] = "SpeechHotkeyClass";
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc;
@@ -105,13 +67,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     lstrcpy(nid.szTip, TEXT("SpeechHotkey Running"));
     Shell_NotifyIcon(NIM_ADD, &nid);
 
-    UINT vkButton = GetButtonVK();
-
     std::thread hotkeyThread([&]() {
         while (running) {
-            if (IsModifierPressed() && (GetAsyncKeyState(vkButton) & 0x8000)) {
-                SendWinHWithShiftFix();
-                while (GetAsyncKeyState(vkButton) & 0x8000)
+            if (GetAsyncKeyState(VK_PAUSE) & 0x8000) {
+                SendWinH();
+
+                // Wait until Pause is released to avoid repeated triggers
+                while (GetAsyncKeyState(VK_PAUSE) & 0x8000)
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
